@@ -20,24 +20,4 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowCredentials(true);
     }
 
-    // @Bean
-    // public CorsFilter corsFilter() {
-    //     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    //     CorsConfiguration config = new CorsConfiguration();
-        
-    //     // Allow all origins - you can restrict this in production
-    //     config.addAllowedOrigin("http://localhost:3000");
-        
-    //     // Allow all HTTP methods
-    //     config.addAllowedMethod("*");
-        
-    //     // Allow all headers
-    //     config.addAllowedHeader("*");
-        
-    //     // Allow credentials like cookies
-    //     config.setAllowCredentials(true);
-        
-    //     source.registerCorsConfiguration("/**", config);
-    //     return new CorsFilter(source);
-    // }
 }
