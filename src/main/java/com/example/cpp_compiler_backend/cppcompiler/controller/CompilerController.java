@@ -1,6 +1,7 @@
 package com.example.cpp_compiler_backend.cppcompiler.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,9 +20,9 @@ public class CompilerController {
     public CompilerController(CompilerService compilerService) {
         this.compilerService = compilerService;
     }
-    //main api to execute c++ code
+
     @PostMapping("/compile")
-    public ResponseEntity<CompileResponse> batchCompileCode(@RequestBody CompileRequest request) {
+    public ResponseEntity<CompileResponse> compileCode(@RequestBody CompileRequest request) {
         CompileResponse response = new CompileResponse();
         
         if (request.getCode() == null || request.getCode().trim().isEmpty()) {
@@ -31,75 +32,67 @@ public class CompilerController {
         }
         
         try {
-            System.out.println("Received batch compile request");
+            System.out.println("Received compile request with code length: " + request.getCode().length());
+            if (request.getInput() != null && !request.getInput().isEmpty()) {
+                System.out.println("Input provided with length: " + request.getInput().length());
+            }
             
-            CompilerService.CompileResult result = compilerService.compileCppCode(request.getCode());
+            CompilerService.CompileResult result = compilerService.compileCppCode(
+                request.getCode(), 
+                request.getInput()
+            );
+            
             response.setSuccess(result.isSuccess());
             response.setOutput(result.getOutput());
             
             if (!result.isSuccess()) {
                 response.setMessage("Compilation or execution failed");
+                System.out.println("Compilation failed: " + result.getOutput());
+            } else {
+                System.out.println("Compilation successful!");
             }
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.err.println("Error in batch compile: " + e.getMessage());
+            System.err.println("Error compiling code: " + e.getMessage());
             e.printStackTrace();
             response.setSuccess(false);
             response.setMessage("Server error: " + e.getMessage());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
-    @GetMapping("/batch-test")
-    public ResponseEntity<CompileResponse> batchTest() {
-        CompileResponse response = new CompileResponse();
-        
-        try {
-            // Absolute minimal test
-            String code = "int main() { return 0; }";
-            
-            CompilerService.CompileResult result = compilerService.compileCppCode(code);
-            response.setSuccess(result.isSuccess());
-            response.setOutput(result.getOutput());
-            
-            if (!result.isSuccess()) {
-                response.setMessage("Batch test failed");
-            } else {
-                response.setMessage("Batch test succeeded");
-            }
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            response.setSuccess(false);
-            response.setMessage("Server error: " + e.getMessage());
-            return ResponseEntity.ok(response);
-        }
+    // Add a simple test endpoint to check if the controller is accessible
+    @GetMapping("/test")
+    public ResponseEntity<String> testEndpoint() {
+        return ResponseEntity.ok("API is working!");
     }
     
-    @GetMapping("/batch-hello")
-    public ResponseEntity<CompileResponse> batchHello() {
+    // Test endpoint with input
+    @GetMapping("/test-input")
+    public ResponseEntity<CompileResponse> testInput() {
         CompileResponse response = new CompileResponse();
         
         try {
-            // Simple hello world
-            String code = "#include <iostream>\n\nint main() {\n    std::cout << \"Hello from batch!\" << std::endl;\n    return 0;\n}";
+            // Test with program that requires input
+            String code = "#include <iostream>\n#include <string>\n\nint main() {\n  std::string name;\n  std::cout << \"What is your name? \";\n  std::getline(std::cin, name);\n  std::cout << \"Hello, \" << name << \"!\" << std::endl;\n  return 0;\n}";
+            String input = "John Doe";
             
-            CompilerService.CompileResult result = compilerService.compileCppCode(code);
+            CompilerService.CompileResult result = compilerService.compileCppCode(code, input);
             response.setSuccess(result.isSuccess());
             response.setOutput(result.getOutput());
             
             if (!result.isSuccess()) {
-                response.setMessage("Batch hello failed");
+                response.setMessage("Input test failed");
             } else {
-                response.setMessage("Batch hello succeeded");
+                response.setMessage("Input test succeeded");
             }
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage("Server error: " + e.getMessage());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }

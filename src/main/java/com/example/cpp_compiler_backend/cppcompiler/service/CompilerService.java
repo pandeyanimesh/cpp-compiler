@@ -45,17 +45,30 @@ public class CompilerService {
         }
     }
 
+    // Overloaded method for backward compatibility
     public CompileResult compileCppCode(String code) {
+        return compileCppCode(code, "");
+    }
+
+    public CompileResult compileCppCode(String code, String input) {
         CompileResult result = new CompileResult();
         String uniqueId = UUID.randomUUID().toString();
         String sourceFilePath = COMPILER_DIR + File.separator + uniqueId + ".cpp";
         String executableFilePath = COMPILER_DIR + File.separator + uniqueId + ".exe";
         String batchFilePath = COMPILER_DIR + File.separator + "compile_" + uniqueId + ".bat";
         String outputFilePath = COMPILER_DIR + File.separator + uniqueId + "_output.txt";
+        String inputFilePath = COMPILER_DIR + File.separator + uniqueId + "_input.txt";
         
         try {
             // Write the code to a file
             Files.write(Path.of(sourceFilePath), code.getBytes());
+            
+            // Write input to a file if provided
+            boolean hasInput = input != null && !input.trim().isEmpty();
+            if (hasInput) {
+                Files.write(Path.of(inputFilePath), input.getBytes());
+                System.out.println("Created input file: " + inputFilePath);
+            }
             
             // Find a working compiler
             String gccPath = null;
@@ -100,10 +113,19 @@ public class CompilerService {
             batchContent.append("  exit /b %ERRORLEVEL%\r\n");
             batchContent.append(")\r\n");
             
-            // Run step
+            // Run step - with or without input redirection
             batchContent.append("echo Running program...\r\n");
-            batchContent.append("\"").append(executableFilePath).append("\" > \"")
-                      .append(outputFilePath).append("\" 2>&1\r\n");
+            
+            if (hasInput) {
+                // With input redirection
+                batchContent.append("\"").append(executableFilePath).append("\" < \"")
+                          .append(inputFilePath).append("\" > \"")
+                          .append(outputFilePath).append("\" 2>&1\r\n");
+            } else {
+                // Without input redirection
+                batchContent.append("\"").append(executableFilePath).append("\" > \"")
+                          .append(outputFilePath).append("\" 2>&1\r\n");
+            }
             
             // Save execution exit code
             batchContent.append("set EXIT_CODE=%ERRORLEVEL%\r\n");
@@ -206,6 +228,9 @@ public class CompilerService {
                 Files.deleteIfExists(Path.of(executableFilePath));
                 Files.deleteIfExists(Path.of(batchFilePath));
                 Files.deleteIfExists(Path.of(outputFilePath));
+                if (input != null && !input.isEmpty()) {
+                    Files.deleteIfExists(Path.of(inputFilePath));
+                }
             } catch (Exception e) {
                 System.err.println("Failed to clean up files: " + e.getMessage());
             }
